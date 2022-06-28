@@ -25,7 +25,9 @@ import com.alibaba.fastjson.JSON;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -42,32 +44,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Boolean createUserIndex(String index) throws IOException {
-        CreateIndexRequest createIndexRequest = new CreateIndexRequest(index);
-        createIndexRequest.settings(Settings.builder()
-                .put("index.number_of_shards", 1)
-                .put("index.number_of_replicas", 0)
-        );
-        createIndexRequest.mapping("{\n" +
-                "  \"properties\": {\n" +
-                "    \"city\": {\n" +
-                "      \"type\": \"keyword\"\n" +
-                "    },\n" +
-                "    \"sex\": {\n" +
-                "      \"type\": \"keyword\"\n" +
-                "    },\n" +
-                "    \"name\": {\n" +
-                "      \"type\": \"keyword\"\n" +
-                "    },\n" +
-                "    \"id\": {\n" +
-                "      \"type\": \"keyword\"\n" +
-                "    },\n" +
-                "    \"age\": {\n" +
-                "      \"type\": \"integer\"\n" +
-                "    }\n" +
-                "  }\n" +
-                "}", XContentType.JSON);
-        CreateIndexResponse createIndexResponse = client.indices().create(createIndexRequest, RequestOptions.DEFAULT);
-        return createIndexResponse.isAcknowledged();
+        IndexRequest request = new IndexRequest(index);
+        request.id("1");
+        Map<String, String> map = new HashMap<>();
+        map.put("id", "1");
+        map.put("name", "曹操");
+        map.put("country", "魏");
+        map.put("birthday", "公元155年");
+        map.put("longevity", "65");
+        request.source(map);
+        IndexResponse indexResponse = client.index(request, RequestOptions.DEFAULT);
+        return indexResponse.isFragment();
     }
 
     @Override

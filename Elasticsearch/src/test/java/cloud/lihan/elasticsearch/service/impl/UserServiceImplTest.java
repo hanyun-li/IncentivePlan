@@ -1,5 +1,7 @@
 package cloud.lihan.elasticsearch.service.impl;
 
+import cloud.lihan.elasticsearch.constant.Constant;
+import cloud.lihan.elasticsearch.document.UserDocument;
 import cloud.lihan.elasticsearch.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
@@ -22,16 +24,17 @@ class UserServiceImplTest {
 
     @Test
     void createUserIndex() throws IOException {
-        userService.createUserIndex("person");
+        userService.createUserIndex(Constant.INDEX);
     }
 
     @Test
     void deleteUserIndex() throws IOException {
-        userService.deleteUserIndex("person");
+        userService.deleteUserIndex(Constant.INDEX);
     }
 
     @Test
-    void createUserDocument() {
+    void createUserDocument() throws Exception {
+        userService.createUserDocument(new UserDocument());
     }
 
     @Test
@@ -39,6 +42,8 @@ class UserServiceImplTest {
     }
 
     @Test
-    void getUserDocument() {
+    void getUserDocument() throws IOException {
+        UserDocument userDocument = userService.getUserDocument("1");
+        System.out.println(userDocument);
     }
 }
