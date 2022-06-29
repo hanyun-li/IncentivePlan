@@ -1,6 +1,6 @@
 package cloud.lihan.wishbox.wish.document;
 
-import cloud.lihan.common.document.BaseDocument;
+import cloud.lihan.common.documents.BaseDocument;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -27,6 +27,6 @@ public class WishDocument extends BaseDocument {
     /**
      * 是否已经实现 true:是 false:否
      */
-    private Boolean isRealized;
+    private Boolean isRealized = Boolean.FALSE;
 
 }

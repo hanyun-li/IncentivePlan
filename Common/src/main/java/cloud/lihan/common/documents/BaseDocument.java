@@ -1,4 +1,4 @@
-package cloud.lihan.common.document;
+package cloud.lihan.common.documents;
 
 import lombok.Data;
 
@@ -14,7 +14,7 @@ public class BaseDocument {
     /**
      * 序号
      */
-    private Integer id;
+    private String id;
 
     /**
      * 创建时间

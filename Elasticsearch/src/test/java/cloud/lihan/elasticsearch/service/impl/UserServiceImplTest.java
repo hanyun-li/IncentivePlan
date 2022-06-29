@@ -24,12 +24,12 @@ class UserServiceImplTest {
 
     @Test
     void createUserIndex() throws IOException {
-        userService.createUserIndex(Constant.INDEX);
+        userService.createUserIndex("wish");
     }
 
     @Test
     void deleteUserIndex() throws IOException {
-        userService.deleteUserIndex(Constant.INDEX);
+        userService.deleteUserIndex("wish");
     }
 
     @Test

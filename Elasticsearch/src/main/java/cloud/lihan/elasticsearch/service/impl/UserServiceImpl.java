@@ -3,8 +3,7 @@ package cloud.lihan.elasticsearch.service.impl;
 import cloud.lihan.elasticsearch.constant.Constant;
 import cloud.lihan.elasticsearch.document.UserDocument;
 import cloud.lihan.elasticsearch.service.UserService;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import com.alibaba.fastjson.JSON;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -15,20 +14,16 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.rest.RestStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import com.alibaba.fastjson.JSON;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * @author hanyun.li
@@ -47,11 +42,13 @@ public class UserServiceImpl implements UserService {
         IndexRequest request = new IndexRequest(index);
         request.id("1");
         Map<String, String> map = new HashMap<>();
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         map.put("id", "1");
-        map.put("name", "曹操");
-        map.put("country", "魏");
-        map.put("birthday", "公元155年");
-        map.put("longevity", "65");
+        map.put("createTime", format.format(new Date()));
+        map.put("updateTime", format.format(new Date()));
+        map.put("wishInfo", "我想吃冰淇凌");
+        map.put("userId", "1");
+        map.put("isRealized", "false");
         request.source(map);
         IndexResponse indexResponse = client.index(request, RequestOptions.DEFAULT);
         return indexResponse.isFragment();
