@@ -27,6 +27,6 @@ public class WishDocument extends BaseDocument {
     /**
      * 是否已经实现 true:是 false:否
      */
-    private Boolean isRealized = Boolean.FALSE;
+    private Boolean isRealized;
 
 }

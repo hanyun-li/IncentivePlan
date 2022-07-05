@@ -1,9 +1,11 @@
 package cloud.lihan.wishbox.config;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.ElasticsearchTransport;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,10 +18,10 @@ import org.springframework.context.annotation.Configuration;
 public class ElasticsearchConfiguration {
 
     @Value("${elasticsearch.host}")
-    private String host;
+    private String host = "127.0.0.1";
 
     @Value("${elasticsearch.port}")
-    private int port;
+    private int port = 9200;
 
     @Value("${elasticsearch.connTimeout}")
     private int connTimeout;
@@ -30,13 +32,20 @@ public class ElasticsearchConfiguration {
     @Value("${elasticsearch.connectionRequestTimeout}")
     private int connectionRequestTimeout;
 
-    @Bean(destroyMethod = "close", name = "client")
-    public RestHighLevelClient initRestClient() {
-        RestClientBuilder builder = RestClient.builder(new HttpHost(host, port))
-                .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
-                        .setConnectTimeout(connTimeout)
-                        .setSocketTimeout(socketTimeout)
-                        .setConnectionRequestTimeout(connectionRequestTimeout));
-        return new RestHighLevelClient(builder);
+    private final RestClient restClient = RestClient.builder(
+            new HttpHost(host, port)).build();
+
+    private final ElasticsearchTransport transport = new RestClientTransport(
+            restClient, new JacksonJsonpMapper());
+
+    @Bean(name = "esClient")
+    public ElasticsearchClient initRestClient() {
+        return new ElasticsearchClient(transport);
     }
+
+//    @Bean(name = "esAsyncClient")
+//    public ElasticsearchAsyncClient initAsyncRestClient() {
+//        return new ElasticsearchAsyncClient(transport);
+//    }
+
 }

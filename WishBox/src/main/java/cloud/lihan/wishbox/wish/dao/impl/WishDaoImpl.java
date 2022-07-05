@@ -1,30 +1,38 @@
 package cloud.lihan.wishbox.wish.dao.impl;
 
+import cloud.lihan.common.constants.ElasticsearchScriptConstant;
 import cloud.lihan.common.constants.IndexConstant;
 import cloud.lihan.common.constants.IntegerConstant;
+import cloud.lihan.common.constants.TimeFormatConstant;
+import cloud.lihan.common.utils.UuidUtil;
 import cloud.lihan.wishbox.wish.dao.inner.WishDao;
 import cloud.lihan.wishbox.wish.document.WishDocument;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ScriptSortType;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch.core.BulkRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.UpdateByQueryRequest;
+import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.JsonData;
 import lombok.extern.slf4j.Slf4j;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.script.Script;
+import org.elasticsearch.script.ScriptType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-import com.alibaba.fastjson.JSON;
-import org.thymeleaf.expression.Lists;
-import org.thymeleaf.util.ListUtils;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
+ * 愿望数据相关操作
+ *
  * @author hanyun.li
  * @createTime 2022/06/28 18:39:00
  */
@@ -33,72 +41,109 @@ import java.util.*;
 public class WishDaoImpl implements WishDao {
 
     @Autowired
-    private RestHighLevelClient client;
-
-    /**
-     * 生成随机id使用
-     */
-    private final UUID uuid = UUID.randomUUID();
+    private ElasticsearchClient esClient;
 
     @Override
-    public Boolean createWishDocument(WishDocument wishDocument) throws IOException {
-        wishDocument.setId(uuid.toString());
-        IndexRequest indexRequest = new IndexRequest(IndexConstant.WISH_INDEX)
+    public void createWishDocument(WishDocument wishDocument) throws IOException {
+        wishDocument.setId(UuidUtil.newUUID());
+        SimpleDateFormat format = new SimpleDateFormat(TimeFormatConstant.STANDARD);
+        wishDocument.setCreateTime(format.format(new Date()));
+        wishDocument.setUpdateTime(format.format(new Date()));
+        wishDocument.setIsRealized(Boolean.FALSE);
+        esClient.create(i -> i
+                .index(IndexConstant.WISH_INDEX)
                 .id(wishDocument.getId())
-                .source(JSON.toJSONString(wishDocument), XContentType.JSON);
-        IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
-        return indexResponse.status().equals(RestStatus.OK);
+                .document(wishDocument)
+        );
     }
 
     @Override
-    public Boolean bulkCreateWishDocument(List<WishDocument> wishDocuments) throws IOException {
-        BulkRequest bulkRequest = new BulkRequest();
-        for (WishDocument document : wishDocuments) {
-            document.setId(uuid.toString());
-            IndexRequest indexRequest = new IndexRequest(IndexConstant.WISH_INDEX)
-                    .id(uuid.toString())
-                    .source(JSON.toJSONString(document), XContentType.JSON);
-            bulkRequest.add(indexRequest);
+    @Transactional(rollbackFor = IOException.class)
+    public void bulkCreateWishDocument(List<WishDocument> wishDocuments) throws IOException {
+        BulkRequest.Builder br = new BulkRequest.Builder();
+        for (WishDocument wishDocument : wishDocuments) {
+            wishDocument.setId(UuidUtil.newUUID());
+            SimpleDateFormat format = new SimpleDateFormat(TimeFormatConstant.STANDARD);
+            wishDocument.setCreateTime(format.format(new Date()));
+            wishDocument.setUpdateTime(format.format(new Date()));
+            wishDocument.setIsRealized(Boolean.FALSE);
+            br.operations(op -> op
+                    .index(idx -> idx
+                            .index(IndexConstant.WISH_INDEX)
+                            .id(wishDocument.getId())
+                            .document(wishDocument)
+                    )
+            );
         }
-        BulkResponse bulkResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
-        return bulkResponse.status().equals(RestStatus.OK);
+        esClient.bulk(br.build());
+    }
+
+    @Override
+    public void deleteWishDocumentById(String wishDocumentId) throws IOException {
+        esClient.delete(d -> d
+                .index(IndexConstant.WISH_INDEX)
+                .id(wishDocumentId)
+        );
+    }
+
+    @Override
+    public void updateWishDocumentById(Map<String, JsonData> optionsMaps, Query query) throws IOException {
+        UpdateByQueryRequest update = UpdateByQueryRequest.of(u -> u
+                .index(IndexConstant.WISH_INDEX)
+                .query(query)
+                .script(s -> s.inline(i -> i
+                        .lang(ElasticsearchScriptConstant.SCRIPT_LANGUAGE)
+                        .params(optionsMaps)
+                        .source("ctx._source.isRealized=params.isRealized")
+                ))
+        );
+        esClient.updateByQuery(update);
     }
 
     @Override
     public WishDocument getWishDocumentById(String wishDocumentId) throws IOException {
-        GetRequest getRequest = new GetRequest(IndexConstant.WISH_INDEX, wishDocumentId);
-        GetResponse getResponse = client.get(getRequest, RequestOptions.DEFAULT);
-        WishDocument result = new WishDocument();
-        if (getResponse.isExists()) {
-            String sourceAsString = getResponse.getSourceAsString();
-            result = JSON.parseObject(sourceAsString, WishDocument.class);
-        } else {
-            log.error("没有找到wishDocumentId= " + wishDocumentId + " 的文档");
-        }
-        return result;
+        Query query = new Query.Builder()
+                .term(t -> t.field("id").value(wishDocumentId))
+                .build();
+        SearchResponse<WishDocument> search = esClient.search(s -> s
+                        .index(IndexConstant.WISH_INDEX)
+                        .query(query)
+                , WishDocument.class);
+        List<WishDocument> wishDocuments = this.processWish(search);
+        return CollectionUtils.isEmpty(wishDocuments) ? new WishDocument() : wishDocuments.get(IntegerConstant.ZERO);
     }
 
     @Override
     public List<WishDocument> getWishDocuments() throws IOException {
-        GetRequest getRequest = new GetRequest(IndexConstant.WISH_INDEX);
-        GetResponse getResponse = client.get(getRequest, RequestOptions.DEFAULT);
-        String sourceAsString = getResponse.getSourceAsString();
-        return JSON.parseArray(sourceAsString, WishDocument.class);
+        SearchResponse<WishDocument> search = esClient.search(s -> s
+                        .index(IndexConstant.WISH_INDEX)
+                , WishDocument.class);
+        return this.processWish(search);
     }
 
     @Override
-    public List<WishDocument> getRandomNumbersWishDocuments(Integer wishDocumentNum) throws IOException {
-        List<WishDocument> wishDocuments = this.getWishDocuments();
-        if (Objects.isNull(wishDocuments) || Objects.isNull(wishDocumentNum)) {
-            return Collections.emptyList();
-        }
+    public List<WishDocument> getRandomNumbersWishDocuments(Integer wishDocumentNum, Query query) throws IOException {
+        // 随机排序脚本
+        Reader queryJson = new StringReader(ElasticsearchScriptConstant.RANDOM_SORT_SCRIPT);
+        SearchResponse<WishDocument> search = esClient.search(s -> s
+                        .withJson(queryJson)
+                        .index(IndexConstant.WISH_INDEX)
+                        .size(wishDocumentNum)
+                        .query(query)
+                , WishDocument.class);
+        return processWish(search);
+    }
 
-        if (wishDocumentNum > IntegerConstant.ZERO && wishDocumentNum <= wishDocuments.size()) {
-            List<WishDocument> newsWishDocument = new LinkedList<>();
-            for (int i = 0; i < wishDocumentNum; i++) {
-                newsWishDocument.add(wishDocuments.get(i));
-            }
-            return newsWishDocument;
+    /**
+     * 组装愿望集合
+     *
+     * @param searchResponse 查询返回的响应体
+     * @return 愿望集合
+     */
+    private List<WishDocument> processWish(SearchResponse<WishDocument> searchResponse) {
+        List<WishDocument> wishDocuments = new LinkedList<>();
+        for (Hit<WishDocument> hit : searchResponse.hits().hits()) {
+            wishDocuments.add(hit.source());
         }
         return wishDocuments;
     }

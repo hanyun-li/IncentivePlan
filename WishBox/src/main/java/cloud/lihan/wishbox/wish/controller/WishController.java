@@ -1,17 +1,19 @@
 package cloud.lihan.wishbox.wish.controller;
 
+import cloud.lihan.common.constants.IntegerConstant;
 import cloud.lihan.common.controller.BaseController;
 import cloud.lihan.common.core.Base;
+import cloud.lihan.wishbox.wish.dto.WishDTO;
 import cloud.lihan.wishbox.wish.service.inner.WishService;
 import cloud.lihan.wishbox.wish.vo.WishVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * 愿望相关控制器
@@ -26,7 +28,58 @@ public class WishController extends BaseController {
     @Autowired
     private WishService wishService;
 
+    @PutMapping()
+    @ResponseBody
+    public Base savaWish(@RequestBody WishVO wishVO) {
+        try {
+            if (Objects.isNull(wishVO)) {
+                return apiErr("输入的愿望参数为空！");
+            }
+            wishService.saveWish(wishVO);
+            return apiOk();
+        } catch (IOException e) {
+            return apiErr(e.getMessage());
+        }
+    }
+
+    @PutMapping("/bulk")
+    @ResponseBody
+    public Base bulkSavaWish(@RequestBody List<WishVO> wishVOs) {
+        try {
+            if (CollectionUtils.isEmpty(wishVOs)) {
+                return apiErr("输入的愿望参数集合为空！");
+            }
+            wishService.bulkSaveWish(wishVOs);
+            return apiOk();
+        } catch (IOException e) {
+            return apiErr(e.getMessage());
+        }
+    }
+
+    @DeleteMapping()
+    @ResponseBody
+    public Base deleteWishById(@RequestParam("id") String id) {
+        try {
+            wishService.deleteWishDocumentById(id);
+            return apiOk();
+        } catch (IOException e) {
+            return apiErr(e.getMessage());
+        }
+    }
+
+    @PostMapping("/fulfillment")
+    @ResponseBody
+    public Base fulfillmentWishById(@RequestParam("id") String id) {
+        try {
+            wishService.fulfillmentWishById(id);
+            return apiOk();
+        } catch (IOException e) {
+            return apiErr(e.getMessage());
+        }
+    }
+
     @GetMapping()
+    @ResponseBody
     public Base getSingeRandomWish() {
         try {
             return apiOk(wishService.getSingeRandomWish());
@@ -35,15 +88,22 @@ public class WishController extends BaseController {
         }
     }
 
-    @PutMapping()
-    public Base savaWish(@RequestBody WishVO wishVO) {
+    @GetMapping("/all")
+    @ResponseBody
+    public Base getAllWish() {
         try {
-            Boolean isSaved = wishService.saveWish(wishVO);
-            if (isSaved) {
-                return apiOk();
-            } else {
-                return apiErr("保存失败");
-            }
+            return apiOk(wishService.getMultipleRandomWish(IntegerConstant.ONE + IntegerConstant.NINE));
+        } catch (IOException e) {
+            return apiErr(e.getMessage());
+        }
+    }
+
+    @GetMapping("/single")
+    @ResponseBody
+    public Base getWishById(@RequestParam("id") String id) {
+        try {
+            WishDTO wishByWishDocumentId = wishService.getWishByWishDocumentId(id);
+            return apiOk(wishByWishDocumentId);
         } catch (IOException e) {
             return apiErr(e.getMessage());
         }

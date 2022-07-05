@@ -1,9 +1,12 @@
 package cloud.lihan.wishbox.wish.dao.inner;
 
 import cloud.lihan.wishbox.wish.document.WishDocument;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.json.JsonData;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 愿望相关的数据方法
@@ -17,10 +20,9 @@ public interface WishDao {
      * 创建单个愿望文档
      *
      * @param wishDocument 愿望文档
-     * @return true:创建成功 false:创建失败
      * @throws IOException 异常信息
      */
-    Boolean createWishDocument(WishDocument wishDocument) throws IOException;
+    void createWishDocument(WishDocument wishDocument) throws IOException;
 
     /**
      * 批量创建多个愿望文档
@@ -29,7 +31,24 @@ public interface WishDao {
      * @return true:创建成功 false:创建失败
      * @throws IOException 异常信息
      */
-    Boolean bulkCreateWishDocument(List<WishDocument> wishDocuments) throws IOException;
+    void bulkCreateWishDocument(List<WishDocument> wishDocuments) throws IOException;
+
+    /**
+     * 根据ID删除愿望文档
+     *
+     * @param wishDocumentId 愿望文档标识
+     * @throws IOException 异常信息
+     */
+    void deleteWishDocumentById(String wishDocumentId) throws IOException;
+
+    /**
+     * 根据自定义条件更新愿望文档
+     *
+     * @param optionsMaps 更新(操作)集合
+     * @param updateByQuery 自定义更新条件
+     * @throws IOException 异常信息
+     */
+    void updateWishDocumentById(Map<String, JsonData> optionsMaps, Query updateByQuery) throws IOException;
 
     /**
      * 根据ID获取愿望文档
@@ -52,9 +71,10 @@ public interface WishDao {
      * 随机获取指定数量的愿望文档
      *
      * @param wishDocumentNum 需要获取的愿望文档数量
+     * @param query 自定义查询条件
      * @return {@link List<WishDocument>}
      * @throws IOException 异常信息
      */
-    List<WishDocument> getRandomNumbersWishDocuments(Integer wishDocumentNum) throws IOException;
+    List<WishDocument> getRandomNumbersWishDocuments(Integer wishDocumentNum, Query query) throws IOException;
 
 }

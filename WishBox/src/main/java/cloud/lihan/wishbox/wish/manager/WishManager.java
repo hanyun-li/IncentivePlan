@@ -1,13 +1,12 @@
 package cloud.lihan.wishbox.wish.manager;
 
-import cloud.lihan.common.constants.TimeFormatConstant;
 import cloud.lihan.wishbox.wish.document.WishDocument;
 import cloud.lihan.wishbox.wish.dto.WishDTO;
 import cloud.lihan.wishbox.wish.vo.WishVO;
 import org.springframework.stereotype.Component;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -25,7 +24,7 @@ public class WishManager {
      * @param wishDocument 愿望文档实体
      * @return {@link WishDTO}
      */
-    public WishDTO WishDocumentConvertWishDTO(WishDocument wishDocument) {
+    public WishDTO wishDocumentConvertWishDTO(WishDocument wishDocument) {
         if (Objects.isNull(wishDocument)) {
             return null;
         }
@@ -40,23 +39,46 @@ public class WishManager {
     }
 
     /**
+     * 特定集合转换 {@link List<WishDocument>} to {@link List<WishDTO>}
+     *
+     * @param wishDocuments 愿望文档实体集合
+     * @return {@link List<WishDTO>}
+     */
+    public List<WishDTO> wishDocumentsConvertWishDTO(List<WishDocument> wishDocuments) {
+        List<WishDTO> wishDTOS = new LinkedList<>();
+        for (WishDocument wishDocument : wishDocuments) {
+            wishDTOS.add(this.wishDocumentConvertWishDTO(wishDocument));
+        }
+        return wishDTOS;
+    }
+
+    /**
      * 特定对象转换 {@link WishVO} to {@link WishDocument}
      *
      * @param wishVO 愿望输入实体
      * @return {@link WishDocument}
      */
-    public WishDocument WishVOConvertWishDocument(WishVO wishVO) {
+    public WishDocument wishVOConvertWishDocument(WishVO wishVO) {
         if (Objects.isNull(wishVO)) {
             return null;
         }
         WishDocument wishDocument = new WishDocument();
-        wishDocument.setId(wishVO.getId());
         wishDocument.setWishInfo(wishVO.getWishInfo());
-        wishDocument.setIsRealized(wishVO.getIsRealized());
         wishDocument.setUserId(wishVO.getUserId());
-        SimpleDateFormat format = new SimpleDateFormat(TimeFormatConstant.STANDARD);
-        wishDocument.setCreateTime(format.format(new Date()));
-        wishDocument.setUpdateTime(format.format(new Date()));
         return wishDocument;
+    }
+
+    /**
+     * 特定对象转换 {@link List<WishVO>} to {@link List<WishDocument>}
+     *
+     * @param wishVOs 愿望输入实体集合
+     * @return {@link List<WishDocument>}
+     */
+    public List<WishDocument> wishVOConvertsWishDocument(List<WishVO> wishVOs) {
+        List<WishDocument> wishDTOS = new LinkedList<>();
+        for (WishVO wishVO : wishVOs) {
+            wishDTOS.add(this.wishVOConvertWishDocument(wishVO));
+        }
+        return wishDTOS;
     }
 }

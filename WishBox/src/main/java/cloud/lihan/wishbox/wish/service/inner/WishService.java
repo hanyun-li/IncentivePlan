@@ -2,6 +2,7 @@ package cloud.lihan.wishbox.wish.service.inner;
 
 import cloud.lihan.wishbox.wish.dto.WishDTO;
 import cloud.lihan.wishbox.wish.vo.WishVO;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 
 import java.io.IOException;
 import java.util.List;
@@ -15,9 +16,43 @@ import java.util.List;
 public interface WishService {
 
     /**
+     * 保存愿望
+     *
+     * @param wishVO 愿望信息
+     * @throws IOException 异常信息
+     */
+    void saveWish(WishVO wishVO) throws IOException;
+
+    /**
+     * 批量保存愿望
+     *
+     * @param wishVOs 愿望集合
+     * @throws IOException 异常信息
+     */
+    void bulkSaveWish(List<WishVO> wishVOs) throws IOException;
+
+    /**
+     * 根据ID删除愿望
+     *
+     * @param wishDocumentId 愿望文档标识
+     * @return true:创建成功 false:创建失败
+     * @throws IOException 异常信息
+     */
+    void deleteWishDocumentById(String wishDocumentId) throws IOException;
+
+    /**
+     * 根据ID实现愿望
+     *
+     * @param wishDocumentId 愿望文档标识
+     * @throws IOException 异常信息
+     */
+    void fulfillmentWishById(String wishDocumentId) throws IOException;
+
+    /**
      * 随机获取一个愿望
      *
      * @return {@link WishDTO}
+     * @throws IOException 异常信息
      */
     WishDTO getSingeRandomWish() throws IOException;
 
@@ -26,14 +61,17 @@ public interface WishService {
      *
      * @param wishDocumentNum 需要获取的愿望文档数量
      * @return {@link List<WishDTO>}
+     * @throws IOException 异常信息
      */
     List<WishDTO> getMultipleRandomWish(Integer wishDocumentNum) throws IOException;
 
     /**
-     * 保存愿望
+     * 根据ID获取愿望
      *
-     * @param wishVO 愿望信息
-     * @return {@link WishVO}
+     * @param wishDocumentId 愿望主键
+     * @return {@link WishDTO}
+     * @throws IOException 异常信息
      */
-    Boolean saveWish(WishVO wishVO) throws IOException;
+    WishDTO getWishByWishDocumentId(String wishDocumentId) throws IOException;
+
 }

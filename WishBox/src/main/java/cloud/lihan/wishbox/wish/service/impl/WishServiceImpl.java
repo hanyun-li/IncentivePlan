@@ -7,13 +7,16 @@ import cloud.lihan.wishbox.wish.dto.WishDTO;
 import cloud.lihan.wishbox.wish.manager.WishManager;
 import cloud.lihan.wishbox.wish.service.inner.WishService;
 import cloud.lihan.wishbox.wish.vo.WishVO;
-import com.alibaba.fastjson.JSON;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.json.JsonData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
-import java.util.LinkedList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -31,31 +34,56 @@ public class WishServiceImpl implements WishService {
     private WishManager wishManager;
 
     @Override
+    public void saveWish(WishVO wishVO) throws IOException {
+        wishDao.createWishDocument(wishManager.wishVOConvertWishDocument(wishVO));
+    }
+
+    @Override
+    public void bulkSaveWish(List<WishVO> wishVOs) throws IOException {
+        wishDao.bulkCreateWishDocument(wishManager.wishVOConvertsWishDocument(wishVOs));
+    }
+
+    @Override
+    public void deleteWishDocumentById(String wishDocumentId) throws IOException {
+        wishDao.deleteWishDocumentById(wishDocumentId);
+    }
+
+    @Override
+    public void fulfillmentWishById(String wishDocumentId) throws IOException {
+        // 指定主键
+        Query query = new Query.Builder()
+                .ids(id -> id.values(wishDocumentId))
+                .build();
+        // 组装更新map
+        Map<String, JsonData> optionMaps = new HashMap<>(IntegerConstant.ONE);
+        optionMaps.put("isRealized", JsonData.of(Boolean.TRUE));
+        wishDao.updateWishDocumentById(optionMaps, query);
+    }
+
+    @Override
     public WishDTO getSingeRandomWish() throws IOException {
-        WishDocument wishDocument = wishDao.getWishDocumentById("1");
-        return wishManager.WishDocumentConvertWishDTO(wishDocument);
+        List<WishDTO> multipleRandomWish = this.getMultipleRandomWish(IntegerConstant.ONE);
+        if (CollectionUtils.isEmpty(multipleRandomWish)) {
+            return new WishDTO();
+        }
+        return wishManager.wishDocumentConvertWishDTO(multipleRandomWish.get(IntegerConstant.ZERO));
     }
 
     @Override
     public List<WishDTO> getMultipleRandomWish(Integer wishDocumentNum) throws IOException {
-        List<WishDocument> wishDocuments = wishDao.getRandomNumbersWishDocuments(wishDocumentNum);
-        List<WishDTO> wishDTOS = new LinkedList<>();
-        for (WishDocument wishDocument : wishDocuments) {
-            WishDTO wishDTO = wishManager.WishDocumentConvertWishDTO(wishDocument);
-            if (Objects.nonNull(wishDTO)) {
-                wishDTOS.add(wishDTO);
-            }
-        }
-        return wishDTOS;
+        // 筛选没有被实现的愿望
+        Query query = new Query.Builder().term(t -> t
+                .field("isRealized")
+                .value(v -> v.booleanValue(Boolean.FALSE))
+        ).build();
+        List<WishDocument> wishDocuments = wishDao.getRandomNumbersWishDocuments(wishDocumentNum, query);
+        return wishManager.wishDocumentsConvertWishDTO(wishDocuments);
     }
 
     @Override
-    public Boolean saveWish(WishVO wishVO) throws IOException {
-        WishDocument wishDocument = wishManager.WishVOConvertWishDocument(wishVO);
-        if (Objects.isNull(wishDocument)) {
-            return Boolean.FALSE;
-        }
-        return wishDao.createWishDocument(wishDocument);
+    public WishDTO getWishByWishDocumentId(String wishDocumentId) throws IOException {
+        WishDocument wishDocument = wishDao.getWishDocumentById(wishDocumentId);
+        return wishManager.wishDocumentConvertWishDTO(wishDocument);
     }
 
 }
