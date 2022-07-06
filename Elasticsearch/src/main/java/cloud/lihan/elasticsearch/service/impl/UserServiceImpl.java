@@ -23,7 +23,10 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * @author hanyun.li
@@ -42,10 +45,9 @@ public class UserServiceImpl implements UserService {
         IndexRequest request = new IndexRequest(index);
         request.id("1");
         Map<String, String> map = new HashMap<>();
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         map.put("id", "1");
-        map.put("createTime", format.format(new Date()));
-        map.put("updateTime", format.format(new Date()));
+        map.put("createTime", "曹操");
+        map.put("updateTime", "");
         map.put("wishInfo", "我想吃冰淇凌");
         map.put("userId", "1");
         map.put("isRealized", "false");
